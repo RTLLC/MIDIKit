@@ -9,9 +9,9 @@ import MIDIKitCore
 
 // MARK: - Track
 
-extension MIDIFile.Chunk {
+public extension MIDIFile.Chunk {
     /// Track: `MTrk` chunk type.
-    public struct Track: Equatable, Hashable {
+    struct Track: Equatable, Hashable {
         public static let staticIdentifier: String = "MTrk"
         
         static let chunkEnd: [UInt8] = [0xFF, 0x2F, 0x00]
@@ -19,8 +19,12 @@ extension MIDIFile.Chunk {
         /// Storage for events in the track.
         public var events: [MIDIFileEvent] = []
         
+        /// ChunkEnd delta time
+        public var endTrackDeltaTime: MIDIFileEvent
+            .DeltaTime?
+        
         /// Instance a new empty MIDI file track.
-        public init() { }
+        public init() {}
         
         public init(events: [MIDIFileEvent]) {
             self.events = events
@@ -42,7 +46,9 @@ extension MIDIFile.Chunk.Track: CustomStringConvertible, CustomDebugStringConver
             outputString += "    \(deltaString) \($0.smfUnwrappedEvent.event.smfDescription)"
                 .newLined
         }
-        
+        if let endTrackDeltaTime {
+            outputString += "  endTrackDeltaTime: \(endTrackDeltaTime)".newLined
+        }
         outputString += ")"
         
         return outputString
@@ -68,7 +74,7 @@ extension MIDIFile.Chunk.Track: CustomStringConvertible, CustomDebugStringConver
     }
 }
 
-extension MIDIFile.Chunk.Track: Sendable { }
+extension MIDIFile.Chunk.Track: Sendable {}
 
 extension MIDIFile.Chunk.Track: MIDIFileChunk {
     public var identifier: String { Self.staticIdentifier }
@@ -76,9 +82,9 @@ extension MIDIFile.Chunk.Track: MIDIFileChunk {
 
 // MARK: - Static Constructors
 
-extension MIDIFile.Chunk {
+public extension MIDIFile.Chunk {
     /// Track: `MTrk` chunk type.
-    public static func track(_ events: [MIDIFileEvent]) -> Self {
+    static func track(_ events: [MIDIFileEvent]) -> Self {
         .track(.init(events: events))
     }
 }
@@ -188,6 +194,7 @@ extension MIDIFile.Chunk.Track {
                    readBuffer.elementsEqual(Self.chunkEnd)
                 {
                     endOfChunk = true
+                    endTrackDeltaTime = .ticks(UInt32(eventDeltaTime.value))
                     break
                 }
             
