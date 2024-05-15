@@ -95,6 +95,19 @@ extension MIDIFile {
                         // append some context for the error and rethrow it
                         switch error {
                         case let .malformed(verboseError):
+                            
+#if DEBUG
+                            print(
+    """
+    *****
+    file: \(#file)
+    func: \(#function)
+    line: \(#line) time: \(Date())
+    decode error read chudk: \n \(newChunks)
+    """
+                            )
+#endif
+                            
                             throw DecodeError.malformed(
                                 "There was a problem reading track data at byte offset \(dataReader.readOffset) for track \(tracksEncountered). " +
                                     verboseError

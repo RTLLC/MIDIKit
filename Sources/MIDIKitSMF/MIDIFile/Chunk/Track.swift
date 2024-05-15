@@ -223,14 +223,24 @@ extension MIDIFile.Chunk.Track {
             
                 var foundEvent: (newEvent: MIDIFileEventPayload, bufferLength: Int)?
             
+                var errorString: String = "\n"
+                
                 autoreleasepool {
-                    for eventDef in MIDIFile.Chunk.Track.eventDecodeOrder.concreteTypes {
-                        if let success = try? eventDef
-                            .initFrom(midi1SMFRawBytesStream: readBuffer)
-                        {
+                    for (index, eventDef) in MIDIFile.Chunk.Track.eventDecodeOrder.concreteTypes.enumerated() {
+                        do {
+                            let success = try eventDef
+                                .initFrom(midi1SMFRawBytesStream: readBuffer)
                             foundEvent = success
-                            break // break for-loop lazily
+                            break
+                        } catch {
+                            errorString += "midi analysis index: \(index) \(eventDef) error: \(error) \n"
                         }
+//                        if let success = try? eventDef
+//                            .initFrom(midi1SMFRawBytesStream: readBuffer)
+//                        {
+//                            foundEvent = success
+//                            break // break for-loop lazily
+//                        }
                     }
                 }
                 
@@ -268,7 +278,7 @@ extension MIDIFile.Chunk.Track {
                     let byteOffsetString = dataReader.readOffset
                         .hexString(padTo: 1, prefix: true)
                 
-                    let sampleBytes = (1 ... 8)
+                    let sampleBytes = (1 ... 16)
                         .reduce([UInt8]()) {
                             // read as many bytes as possible, up to range.count
                             if let getBytes = try? dataReader.nonAdvancingRead(bytes: $1) {
@@ -277,7 +287,27 @@ extension MIDIFile.Chunk.Track {
                             return $0
                         }
                         .hexString(padEachTo: 2, prefixes: true)
-                
+                    
+                    var outputString = ""
+                    let eventString = newEvents.forEach {
+                        let deltaString = $0.smfUnwrappedEvent.delta.debugDescription
+                            .padding(toLength: 15 + 11, withPad: " ", startingAt: 0)
+                        
+                        outputString += "    \(deltaString) \($0.smfUnwrappedEvent.event.smfDebugDescription)"
+                            .newLined
+                    }
+                    
+#if DEBUG
+                    print(
+                        """
+                        *****
+                        file: \(#file)
+                        func: \(#function)
+                        midi analysis error: aready read newEvents: \n\(outputString)
+                        list: \(errorString)
+                        """
+                    )
+#endif
                     throw MIDIFile.DecodeError.malformed(
                         "Unexpected data encountered before end of track at track data byte offset \(byteOffsetString) (\(sampleBytes) ...)."
                     )
