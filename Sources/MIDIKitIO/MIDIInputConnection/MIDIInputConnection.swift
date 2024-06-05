@@ -193,7 +193,7 @@ extension MIDIInputConnection {
                 manager.coreMIDIClientRef,
                 UUID().uuidString as CFString,
                 &newInputPortRef,
-                { [weak q = midiManager?.eventQueue, weak h = receiveHandler] packetListPtr, srcConnRefCon in
+                { [weak q = midiManager?.eventQueue, weak self] packetListPtr, srcConnRefCon in
                     // we have to use weak captures of the objects directly, and NOT use [weak self]
                     // otherwise we run into data races when Thread Sanitizer is on
                     
@@ -203,7 +203,7 @@ extension MIDIInputConnection {
                     )
                     
                     q?.async {
-                        h?.packetListReceived(packets)
+                        self?.receiveHandler.packetListReceived(packets)
                     }
                 }
             )
@@ -221,7 +221,7 @@ extension MIDIInputConnection {
                 UUID().uuidString as CFString,
                 api.midiProtocol.coreMIDIProtocol,
                 &newInputPortRef,
-                { [weak q = midiManager?.eventQueue, weak h = receiveHandler] eventListPtr, srcConnRefCon in
+                { [weak q = midiManager?.eventQueue, weak self] eventListPtr, srcConnRefCon in
                     // we have to use weak captures of the objects directly, and NOT use [weak self]
                     // otherwise we run into data races when Thread Sanitizer is on
                     
@@ -232,7 +232,7 @@ extension MIDIInputConnection {
                     let midiProtocol = MIDIProtocolVersion(eventListPtr.pointee.protocol)
                     
                     q?.async {
-                        h?.eventListReceived(
+                        self?.receiveHandler.eventListReceived(
                             packets,
                             protocol: midiProtocol
                         )
